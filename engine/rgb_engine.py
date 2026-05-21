@@ -37,7 +37,7 @@ def calculate_checksum(payload):
 
 # ==================== HID CONTROLLER ====================
 class HIDController:
-    def __init__(self, vid=0x373B, pid=0x10D4, interface=1):
+    def __init__(self, vid=0x373B, pid=0x1058, interface=1):
         self.vid = vid
         self.pid = pid
         self.interface = interface
