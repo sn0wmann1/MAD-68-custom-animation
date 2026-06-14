@@ -10,7 +10,7 @@ import queue
 import threading
 
 # ==============================================================
-# MAD68 Pro R - Python RGB Engine
+# MAD68 RGB Engine (supports Pro + HE models)
 # ==============================================================
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,27 +37,30 @@ def calculate_checksum(payload):
 
 # ==================== HID CONTROLLER ====================
 class HIDController:
-    def __init__(self, vid=0x373B, pid=0x1058, interface=1):
+    def __init__(self, vid=0x373B, pids=None, interface=1):
         self.vid = vid
-        self.pid = pid
+        self.pids = pids or [0x1058, 0x10D4]  # HE first, then Pro
         self.interface = interface
         self.device = None
         self.last_chunks = {}
+        self.found_pid = None
+
+    def _find_path(self):
+        for pid in self.pids:
+            for d in hid.enumerate(self.vid, pid):
+                if d['interface_number'] == self.interface:
+                    self.found_pid = pid
+                    return d['path']
+        return None
 
     def is_device_present(self):
-        for d in hid.enumerate(self.vid, self.pid):
-            if d['interface_number'] == self.interface:
-                return True
-        return False
+        return self._find_path() is not None
 
     def connect(self):
-        target_path = None
-        for d in hid.enumerate(self.vid, self.pid):
-            if d['interface_number'] == self.interface:
-                target_path = d['path']
-                break
+        target_path = self._find_path()
         if not target_path:
-            raise Exception("Nie znaleziono klawiatury / Keyboard not found!")
+            pids_str = ", ".join(f"0x{p:04X}" for p in self.pids)
+            raise Exception(f"Keyboard not found! Tried PIDs: {pids_str}")
         self.device = hid.device()
         self.device.open_path(target_path)
 
